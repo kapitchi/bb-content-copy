@@ -5,7 +5,30 @@ const progress = require('progress-stream');
 const _ = require('lodash');
 const {AbstractService, Joi} = require('@kapitchi/bb-service');
 
+/**
+ * @typedef {Object} HttpMethod
+ * @property {string} type Value: http
+ * @property {string} url
+ * @property {string} method HTTP method
+ * @property {Object} headers
+ */
+
+/**
+ * @typedef {Object} FilesystemMethod
+ * @property {string} type Value: filesystem
+ * @property {string} path File path
+ */
+
+/**
+ * Content copy service
+ */
 class CopyService extends AbstractService {
+  /**
+   * @param {Object} copyServiceOpts
+   * @param {number} copyServiceOpts.progressUpdatePeriod How often is copyServiceProgress.next() is called
+   * @param {Object} copyServiceProgress
+   * @param {Function} copyServiceProgress.next
+   */
   constructor(copyServiceOpts, copyServiceProgress) {
     super(copyServiceOpts, {
       progressUpdatePeriod: Joi.number().optional().default(5000),
@@ -17,6 +40,17 @@ class CopyService extends AbstractService {
     this.allowedDestinations = ['http', 'filesystem'];
   }
 
+  /**
+   * Copy source to destination
+   *
+   * @param {Object} params
+   * @param {string} params.id Unique copy operation ID
+   * @param {FilesystemMethod|HttpMethod} params.source
+   * @param {number} [params.source.size] Content size (if not provided it will be detected)
+   * @param {number} [params.source.mime] MIME type of the content (if not provided it will be detected)
+   * @param {FilesystemMethod|HttpMethod} params.destination
+   * @returns {Promise}
+   */
   async copy(params) {
     params = this.params(params, {
       id: Joi.string(),
@@ -38,6 +72,11 @@ class CopyService extends AbstractService {
 
     //TODO do we always need size/mime for http destination? It's needed for s3 if I remember correctly.
     if (source.type === 'http' && (needSize || needMime)) {
+      this.logger.log({
+        level: 'debug',
+        msg: `${params.id}: HEAD request [${source.url}]`
+      });
+
       const headRes = await rp({
         url: source.url,
         method: 'HEAD',
@@ -54,17 +93,28 @@ class CopyService extends AbstractService {
       }
       this.logger.log({
         level: 'debug',
-        msg: `HEAD request to URL: ${source.url}: size=${headers['content-length']}, mime=${headers['content-type']}`,
-        response: {}
-      })
+        msg: `${params.id}: Response [${source.url}]: size=${headers['content-length']}, mime=${headers['content-type']}`
+      });
     }
 
-    if (source.type === 'filesystem' && (needSize || needMime)) {
-      const stat = fs.statSync(source.path);
-      if (!source.size) {
+    if (source.type === 'filesystem') {
+      if (needSize) {
+        const stat = fs.statSync(source.path);
         source.size = stat.size;
+
+        this.logger.log({
+          level: 'debug',
+          msg: `${params.id}: Stat file: ${source.path}: size=${stat.size}`
+        })
       }
-      //TODO mime
+
+      if (needMime) {
+        //TODO mime
+        this.logger.log({
+          level: 'warn',
+          msg: `${params.id}: File ${source.path}: TODO Can not recognize mime`
+        });
+      }
     }
 
     if (!source.size) {
@@ -89,13 +139,16 @@ class CopyService extends AbstractService {
         });
       });
 
+      this.logger.log({
+        level: 'debug',
+        msg: `${params.id}: copying started`
+      });
+
       this.createReadStream(source).pipe(stats).pipe(this.createWriteStream(destination, (data) => {
-        // this.importFinished({
-        //   ctx: params.ctx,
-        //   contentId: destinationId,
-        //   responseHeaders: res.headers,
-        //   responseBody: body
-        // }).then(resolve, reject);
+        this.logger.log({
+          level: 'debug',
+          msg: `${params.id}: copying finished`
+        });
         resolve({
           data,
           stat
