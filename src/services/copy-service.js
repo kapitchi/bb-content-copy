@@ -26,15 +26,15 @@ class CopyService extends AbstractService {
   /**
    * @param {Object} copyServiceOpts
    * @param {number} copyServiceOpts.progressUpdatePeriod How often is copyServiceProgress.next() is called
-   * @param {Object} copyServiceProgress
-   * @param {Function} copyServiceProgress.next
+   * @param {Object} copyServiceMessagePublisher
+   * @param {Function} copyServiceMessagePublisher.next
    */
-  constructor(copyServiceOpts, copyServiceProgress) {
+  constructor(copyServiceOpts, copyServiceMessagePublisher) {
     super(copyServiceOpts, {
       progressUpdatePeriod: Joi.number().optional().default(5000),
     });
 
-    this.copyServiceProgress = copyServiceProgress;
+    this.copyServiceMessagePublisher = copyServiceMessagePublisher;
 
     this.allowedSources = ['http', 'filesystem'];
     this.allowedDestinations = ['http', 'filesystem'];
@@ -133,7 +133,7 @@ class CopyService extends AbstractService {
       let stat;
       stats.on('progress', (s) => {
         stat = s;
-        this.copyServiceProgress.next({
+        this.copyServiceMessagePublisher.next({
           id: params.id,
           stat: s,
         });

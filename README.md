@@ -39,19 +39,19 @@ Content copy service
 **Kind**: global class  
 
 * [CopyService](#CopyService)
-    * [new CopyService(copyServiceOpts, copyServiceProgress)](#new_CopyService_new)
+    * [new CopyService(copyServiceOpts, copyServiceMessagePublisher)](#new_CopyService_new)
     * [.copy(params)](#CopyService+copy) ⇒ <code>Promise</code>
 
 <a name="new_CopyService_new"></a>
 
-### new CopyService(copyServiceOpts, copyServiceProgress)
+### new CopyService(copyServiceOpts, copyServiceMessagePublisher)
 
 | Param | Type | Description |
 | --- | --- | --- |
 | copyServiceOpts | <code>Object</code> |  |
 | copyServiceOpts.progressUpdatePeriod | <code>number</code> | How often is copyServiceProgress.next() is called |
-| copyServiceProgress | <code>Object</code> |  |
-| copyServiceProgress.next | <code>function</code> |  |
+| copyServiceMessagePublisher | <code>Object</code> |  |
+| copyServiceMessagePublisher.next | <code>function</code> |  |
 
 <a name="CopyService+copy"></a>
 
