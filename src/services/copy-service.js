@@ -134,8 +134,11 @@ class CopyService extends AbstractService {
       stats.on('progress', (s) => {
         stat = s;
         this.copyServiceMessagePublisher.next({
-          id: params.id,
-          stat: s,
+          type: 'copyProgress',
+          data: {
+            id: params.id,
+            stat: s
+          }
         });
       });
 
